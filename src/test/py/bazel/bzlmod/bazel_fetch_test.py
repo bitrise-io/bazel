@@ -330,11 +330,11 @@ class BazelFetchTest(test_base.TestBase):
     # Make updates
     self.main_registry.createCcModule('ccc', '1.1') \
       .createCcModule('ddd', '1.1') \
-      .createCcModule('bbb', '1.0', {'aaa': '1.0', 'ccc': '1.1', 'ddd': '1.1'})
+      .createCcModule('bbb', '1.1', {'aaa': '1.0', 'ccc': '1.1', 'ddd': '1.1'})
     self.ScratchFile(
       'MODULE.bazel',
       [
-        'bazel_dep(name = "bbb", version = "1.0")',
+        'bazel_dep(name = "bbb", version = "1.1")',
         'local_path_override(module_name="bazel_tools", path="tools_mock")',
         'local_path_override(module_name="local_config_platform", ',
         'path="platforms_mock")',
@@ -343,15 +343,11 @@ class BazelFetchTest(test_base.TestBase):
     with open(self._test_cwd + '/vendor/.vendorignore', 'w') as f:
       f.write("ddd~1.1\n")
 
-    # Keep marker to check it was updated later
-    with open(self._test_cwd + '/vendor/@bbb~1.0.marker', 'r') as f:
-      bbbMarker = f.read()
-
     # Re-vendor everything
     self.RunBazel(['vendor', '--vendor_dir=vendor'])
     repos_vendored = os.listdir(self._test_cwd + '/vendor')
     self.assertIn('aaa~1.0', repos_vendored)
-    self.assertIn('bbb~1.0', repos_vendored)
+    self.assertIn('bbb~1.1', repos_vendored)
     self.assertIn('ccc~1.1', repos_vendored)
     self.assertIn('@aaa~1.0.marker', repos_vendored)
     self.assertIn('@bbb~1.0.marker', repos_vendored)
@@ -360,11 +356,6 @@ class BazelFetchTest(test_base.TestBase):
     # Assert ddd was ignored
     self.assertNotIn('ddd~1.1', repos_vendored)
     self.assertNotIn('@ddd~1.0.marker', repos_vendored)
-
-    # Assert bbb marker is updated
-    with open(self._test_cwd + '/vendor/@bbb~1.0.marker', 'r') as f:
-      bbbMarker_updated = f.read()
-    self.assertNotEqual(bbbMarker, bbbMarker_updated)
 
 
 if __name__ == '__main__':
