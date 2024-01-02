@@ -321,11 +321,17 @@ class BazelFetchTest(test_base.TestBase):
     self.assertIn('.vendorignore', repos_vendored)
 
     # Assert local and config are not vendored
+    self.assertNotIn('bazel_tools', repos_vendored)
+    self.assertNotIn('local_config_platform', repos_vendored)
     self.assertNotIn('_main~ext~localRepo', repos_vendored)
     self.assertNotIn('_main~ext~configRepo', repos_vendored)
 
-    # build with vendored repos
+    # Empty external & build with vendor, make sure aaa in /external is
+    # a symlink (This validates it was created from vendor not fetched)
+    self.RunBazel(["clean", "--expunge"])
     self.RunBazel(['build', '@regularRepo//:all', "--vendor_dir=vendor"])
+    _, stdout, _ = self.RunBazel(['info', 'output_base'])
+    os.path.islink(stdout[0] + '/external/bbb~1.0')
 
     # Make updates
     self.main_registry.createCcModule('ccc', '1.1') \

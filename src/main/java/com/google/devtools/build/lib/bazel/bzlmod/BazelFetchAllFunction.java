@@ -19,9 +19,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static com.google.common.collect.ImmutableSet.toImmutableSet;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue.RepositoryType;
 import com.google.devtools.build.lib.bazel.repository.starlark.StarlarkRepositoryFunction;
 import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.rules.repository.RepositoryDirectoryValue;
@@ -30,15 +28,12 @@ import com.google.devtools.build.skyframe.SkyKey;
 import com.google.devtools.build.skyframe.SkyValue;
 import com.google.devtools.build.skyframe.SkyframeLookupResult;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.stream.Collectors;
 import javax.annotation.Nullable;
 
 /**
- * Gather and fetch all the repositories, return them with their {@link RepositoryType}
+ * Gather and fetch all the repositories from MODULE.bazel resolution and extensions evaluation.
+ * If this is fetch configure, only configure repos will be fetched and returned
  */
 public class BazelFetchAllFunction implements SkyFunction {
 
@@ -74,37 +69,26 @@ public class BazelFetchAllFunction implements SkyFunction {
       reposToFetch.addAll(singleEvalValue.getCanonicalRepoNameToInternalNames().keySet());
     }
 
-    // 3. Get repo types from their rules
-    Map<RepositoryName, RepositoryType> allReposWithTypes = new HashMap<>();
-    ImmutableSet<SkyKey> repoRuleKeys =
-        reposToFetch.stream().map(BzlmodRepoRuleValue::key).collect(toImmutableSet());
-    SkyframeLookupResult repoRuleValues = env.getValuesAndExceptions(repoRuleKeys);
-    for (SkyKey repoRuleKey : repoRuleKeys) {
-      BzlmodRepoRuleValue repoRuleValue = (BzlmodRepoRuleValue) repoRuleValues.get(repoRuleKey);
-      if (repoRuleValue == null) {
-        return null;
-      }
-      RepositoryType type;
-      if (StarlarkRepositoryFunction.isConfigureRule(repoRuleValue.getRule())) {
-        type = RepositoryType.CONFIGURE;
-      } else if (StarlarkRepositoryFunction.isLocalRule(repoRuleValue.getRule())) {
-        type = RepositoryType.LOCAL;
-      } else {
-        type = RepositoryType.REGULAR;
-      }
-      allReposWithTypes.put(RepositoryName.createUnvalidated(repoRuleValue.getRule().getName()), type);
-    }
-
-    // 4. If this is fetch configure, only collect repos marked as configure
+    // 3. If this is fetch configure, get repo rules and only collect repos marked as configure
     Boolean fetchConfigure = (Boolean) skyKey.argument();
     if (fetchConfigure) {
-      reposToFetch = allReposWithTypes.entrySet().stream()
-          .filter(entry -> entry.getValue() == RepositoryType.CONFIGURE)
-          .map(Entry::getKey)
-          .collect(Collectors.toList());
+      ImmutableSet<SkyKey> repoRuleKeys =
+          reposToFetch.stream().map(BzlmodRepoRuleValue::key).collect(toImmutableSet());
+      reposToFetch.clear(); // empty this list to only add configured repos
+      SkyframeLookupResult repoRuleValues = env.getValuesAndExceptions(repoRuleKeys);
+      for (SkyKey repoRuleKey : repoRuleKeys) {
+        BzlmodRepoRuleValue repoRuleValue = (BzlmodRepoRuleValue) repoRuleValues.get(repoRuleKey);
+        if (repoRuleValue == null) {
+          return null;
+        }
+        if (StarlarkRepositoryFunction.isConfigureRule(repoRuleValue.getRule())) {
+          reposToFetch.add((RepositoryName) repoRuleKey.argument());
+        }
+      }
     }
 
-    // 5. Fetch all the collected repos
+    // 4. Fetch all the collected repos
+    List<RepositoryName> excludeFromVendoring = new ArrayList<>();
     ImmutableSet<SkyKey> repoDelegatorKeys =
         reposToFetch.stream().map(RepositoryDirectoryValue::key).collect(toImmutableSet());
     SkyframeLookupResult repoDirValues = env.getValuesAndExceptions(repoDelegatorKeys);
@@ -114,8 +98,13 @@ public class BazelFetchAllFunction implements SkyFunction {
       if (repoDirValue == null) {
         return null;
       }
+      if(repoDirValue.excludeFromVendoring()) {
+        excludeFromVendoring.add((RepositoryName) repoDelegatorKey.argument());
+      }
     }
-    return BazelFetchAllValue.create(ImmutableMap.copyOf(allReposWithTypes));
+
+    return BazelFetchAllValue.create(
+        ImmutableList.copyOf(reposToFetch), ImmutableList.copyOf(excludeFromVendoring));
   }
 
 }

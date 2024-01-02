@@ -16,7 +16,7 @@
 package com.google.devtools.build.lib.bazel.bzlmod;
 
 import com.google.auto.value.AutoValue;
-import com.google.common.collect.ImmutableMap;
+import com.google.common.collect.ImmutableList;
 import com.google.devtools.build.lib.cmdline.RepositoryName;
 import com.google.devtools.build.lib.skyframe.SkyFunctions;
 import com.google.devtools.build.lib.skyframe.serialization.VisibleForSerialization;
@@ -33,21 +33,19 @@ import com.google.devtools.build.skyframe.SkyValue;
 @AutoValue
 public abstract class BazelFetchAllValue implements SkyValue {
 
-  public enum RepositoryType {
-    REGULAR,
-    LOCAL,
-    CONFIGURE
-  }
-
   /** Creates a key from the given repository name. */
   public static BazelFetchAllValue.Key key(Boolean configureEnabled) {
     return BazelFetchAllValue.Key.create(configureEnabled);
   }
 
-  public abstract ImmutableMap<RepositoryName, RepositoryType> getAllRepos();
+  public abstract ImmutableList<RepositoryName> getFetchedRepos();
 
-  public static BazelFetchAllValue create(ImmutableMap<RepositoryName, RepositoryType> allRepos) {
-    return new AutoValue_BazelFetchAllValue(allRepos);
+  public abstract ImmutableList<RepositoryName> getExcludeFromVendoringRepos();
+
+  public static BazelFetchAllValue create(
+      ImmutableList<RepositoryName> fetchedRepos,
+      ImmutableList<RepositoryName> excludeFromVendoring) {
+    return new AutoValue_BazelFetchAllValue(fetchedRepos, excludeFromVendoring);
   }
 
   /** Key type for BazelFetchAllValue. */

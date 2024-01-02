@@ -17,9 +17,7 @@ import static com.google.common.collect.ImmutableList.toImmutableList;
 import static java.nio.charset.StandardCharsets.UTF_8;
 
 import com.google.common.collect.ImmutableList;
-import com.google.common.collect.ImmutableMap;
 import com.google.common.collect.ImmutableSet;
-import com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue.RepositoryType;
 import com.google.devtools.build.lib.bazel.bzlmod.BazelFetchAllValue;
 import com.google.devtools.build.lib.bazel.repository.RepositoryOptions;
 import com.google.devtools.build.lib.cmdline.LabelConstants;
@@ -53,7 +51,6 @@ import com.google.devtools.build.skyframe.SkyKey;
 import com.google.devtools.build.skyframe.SkyValue;
 import com.google.devtools.common.options.OptionsParsingResult;
 import java.io.IOException;
-import java.util.Map;
 import java.util.Objects;
 
 /** Fetches external repositories into a specified directory. */
@@ -115,7 +112,8 @@ public final class VendorCommand implements BlazeCommand {
 
       //2. Vendor repos
       BazelFetchAllValue fetchAllValue = (BazelFetchAllValue) evaluationResult.get(fetchKey);
-      vendorRepos(env, repoOptions.vendorDirectory, fetchAllValue.getAllRepos());
+      vendorRepos(env, repoOptions.vendorDirectory, fetchAllValue.getFetchedRepos(),
+          fetchAllValue.getExcludeFromVendoringRepos());
 
       return BlazeCommandResult.success();
     } catch (AbruptExitException e) {
@@ -131,7 +129,8 @@ public final class VendorCommand implements BlazeCommand {
   }
 
   private void vendorRepos(CommandEnvironment env, PathFragment vendorDirectory,
-      ImmutableMap<RepositoryName, RepositoryType> allRepos) throws IOException {
+      ImmutableList<RepositoryName> fetchedRepos,
+      ImmutableList<RepositoryName> excludeFromVendoring) throws IOException {
     Path vendorPath = vendorDirectory.isAbsolute()
         ? env.getRuntime().getFileSystem().getPath(vendorDirectory)
         : env.getWorkingDirectory().getRelative(vendorDirectory);
@@ -143,12 +142,10 @@ public final class VendorCommand implements BlazeCommand {
       vendorPath.createDirectory();
     }
 
-    // exclude any local or config repos
-    ImmutableList<RepositoryName> reposToVendor = allRepos.entrySet().stream()
-        .filter(entry ->
-            entry.getValue() != RepositoryType.LOCAL &&
-                entry.getValue() != RepositoryType.CONFIGURE)
-        .map(Map.Entry::getKey)
+    // exclude local or config repos
+    ImmutableList<RepositoryName> reposToVendor =
+    fetchedRepos.stream()
+        .filter(e -> !excludeFromVendoring.contains(e))
         .collect(ImmutableList.toImmutableList());
 
     //exclude any ignored repo under .vendorignore

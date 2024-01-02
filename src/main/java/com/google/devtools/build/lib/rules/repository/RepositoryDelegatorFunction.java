@@ -204,7 +204,11 @@ public final class RepositoryDelegatorFunction implements SkyFunction {
         return null;
       }
       if (markerHash != null) {
-        return RepositoryDirectoryValue.builder().setPath(repoRoot).setDigest(markerHash).build();
+        return RepositoryDirectoryValue.builder()
+            .setPath(repoRoot)
+            .setDigest(markerHash)
+            .setExcludeFromVendoring(handler.isLocal(rule) || handler.isConfigure(rule))
+            .build();
       } else {
         //So that we are in a consistent state if something happens while fetching the repository
         DigestWriter.clearMarkerFile(directories, repositoryName);
@@ -230,7 +234,9 @@ public final class RepositoryDelegatorFunction implements SkyFunction {
       // restart thus calling the possibly very slow (networking, decompression...) fetch()
       // operation again. So we write the marker file here immediately.
       byte[] digest = digestWriter.writeMarkerFile();
-      return builder.setDigest(digest).build();
+      return builder.setDigest(digest)
+          .setExcludeFromVendoring(handler.isLocal(rule) || handler.isConfigure(rule))
+          .build();
     }
 
     if (!repoRoot.exists()) {
@@ -255,6 +261,7 @@ public final class RepositoryDelegatorFunction implements SkyFunction {
         .setPath(repoRoot)
         .setFetchingDelayed()
         .setDigest(new Fingerprint().digestAndReset())
+        .setExcludeFromVendoring(handler.isLocal(rule) || handler.isConfigure(rule))
         .build();
   }
 
@@ -313,7 +320,8 @@ public final class RepositoryDelegatorFunction implements SkyFunction {
 
     //If this is vendor command, we want to fetch normally and then vendoring will be handled
     //by VendorModule.
-    if (VENDOR_COMMAND.get(env) != null || VENDOR_DIRECTORY.get(env).isEmpty()) {
+    //If vendor mode is off (directory is empty), don't use vendored repos
+    if (VENDOR_COMMAND.get(env).booleanValue() || VENDOR_DIRECTORY.get(env).isEmpty()) {
       return false;
     }
 
@@ -469,7 +477,7 @@ public final class RepositoryDelegatorFunction implements SkyFunction {
       throw new RepositoryFunctionException(
           new IOException("No WORKSPACE file found in " + source), Transience.PERSISTENT);
     }
-    return RepositoryDirectoryValue.builder().setPath(source);
+    return RepositoryDirectoryValue.builder().setExcludeFromVendoring(true).setPath(source);
   }
 
   @Nullable
