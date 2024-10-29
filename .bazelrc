@@ -38,3 +38,9 @@ build --tool_java_language_version=11
 try-import %workspace%/user.bazelrc
 
 build:docs --workspace_status_command=scripts/docs/get_workspace_status.sh
+
+build:remote_buildbuddy --host_platform=@buildbuddy_toolchain//:platform
+build:remote_buildbuddy --platforms=@buildbuddy_toolchain//:platform
+build:remote_buildbuddy --extra_execution_platforms=@buildbuddy_toolchain//:platform
+build:remote_buildbuddy --crosstool_top=@buildbuddy_toolchain//:toolchain
+build:remote_buildbuddy --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
