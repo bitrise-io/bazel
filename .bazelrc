@@ -41,6 +41,6 @@ build:docs --workspace_status_command=scripts/docs/get_workspace_status.sh
 
 build:remote_buildbuddy --host_platform=@buildbuddy_toolchain//:platform
 build:remote_buildbuddy --platforms=@buildbuddy_toolchain//:platform
-build:remote_buildbuddy --extra_execution_platforms=@buildbuddy_toolchain//:platform
 build:remote_buildbuddy --crosstool_top=@buildbuddy_toolchain//:toolchain
 build:remote_buildbuddy --extra_toolchains=@buildbuddy_toolchain//:cc_toolchain
+build:remote_buildbuddy --extra_execution_platforms=@buildbuddy_toolchain//:platform
