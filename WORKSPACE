@@ -713,6 +713,7 @@ http_archive(
     sha256 = "baa9af1b9fcc96d18ac90a4dd68ebd2046c8beb76ed89aea9aabca30959ad30c",
     strip_prefix = "buildbuddy-toolchain-287d6042ad151be92de03c83ef48747ba832c4e2",
     urls = ["https://github.com/buildbuddy-io/buildbuddy-toolchain/archive/287d6042ad151be92de03c83ef48747ba832c4e2.tar.gz"],
+    netrc = "",
 )
 
 load("@io_buildbuddy_buildbuddy_toolchain//:deps.bzl", "buildbuddy_deps")

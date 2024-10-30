@@ -127,7 +127,9 @@ def _http_archive_impl(ctx):
         fail("Only one of build_file and build_file_content can be provided.")
 
     all_urls = _get_all_urls(ctx)
-    auth = _get_auth(ctx, all_urls)
+    auth = {}
+    if ctx.attr.netrc != "":
+        auth = _get_auth(ctx, all_urls)
 
     download_info = ctx.download_and_extract(
         all_urls,
