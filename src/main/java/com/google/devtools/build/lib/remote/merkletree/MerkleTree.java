@@ -122,6 +122,7 @@ public class MerkleTree {
     this.inputBytes = inputBytes;
   }
 
+  // TODO
   /** Returns the digest of the Merkle tree's root. */
   @Nullable
   public Directory getRootProto() {
