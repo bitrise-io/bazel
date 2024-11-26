@@ -241,6 +241,8 @@ final class RemoteSpawnCache implements SpawnCache {
             return;
           }
 
+          action.writeToFile();
+
           if (options.experimentalGuardAgainstConcurrentChanges) {
             try (SilentCloseable c = prof.profile("RemoteCache.checkForConcurrentModifications")) {
               checkForConcurrentModifications();
