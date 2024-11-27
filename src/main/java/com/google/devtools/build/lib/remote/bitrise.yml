@@ -76,6 +76,8 @@ workflows:
             # debug log
             set -x
 
+            mkdir /tmp/bazeldebug
+
             START_TIME=$(date +%s)
             bazel-bin/src/bazel-dev build --profile=./bazel-profile.gz --noslim_profile //src:bazel-dev
             END_TIME=$(date +%s)
