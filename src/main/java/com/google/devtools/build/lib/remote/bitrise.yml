@@ -602,6 +602,10 @@ workflows:
   release-bazel-to-kv-cache-iad-ord-mac:
     after_run:
     - _release_bazel_to_kv_cache
+    meta:
+      bitrise.io:
+        stack: osx-xcode-15.4.x
+        machine_type_id: g2.mac.x-large
   build-bazel-with-bazel-p1-staging:
     after_run:
     - build-bazel-with-bazel-p1
