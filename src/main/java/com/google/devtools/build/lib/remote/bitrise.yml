@@ -229,7 +229,7 @@ workflows:
             fi
     - deploy-to-bitrise-io@2: {}
     summary: Build bazel with bazel
-  _build-bazel-with-patched-bazel-wip-kv:
+  build-bazel-with-patched-bazel-wip-kv:
     steps:
     - activate-ssh-key@4:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
@@ -599,13 +599,27 @@ workflows:
   build-bazel-with-bazel-patched-wip:
     after_run:
     - _build-bazel-with-patched-bazel-wip
-  release-bazel-to-kv-cache-iad-ord-mac:
+  release-bazel-to-kv-cache-r2-darwin:
     after_run:
     - _release_bazel_to_kv_cache
     meta:
       bitrise.io:
         stack: osx-xcode-15.4.x
         machine_type_id: g2.mac.x-large
+  release-bazel-to-kv-cache-r2-linux:
+    after_run:
+    - _release_bazel_to_kv_cache
+    meta:
+      bitrise.io:
+        stack: linux-docker-android-22.04
+        machine_type_id: g2.linux.x-large
+  release-bazel-to-kv-cache-gcp:
+    after_run:
+    - _release_bazel_to_kv_cache
+    meta:
+      bitrise.io:
+        stack: linux-docker-android-22.04
+        machine_type_id: elite-xl
   build-bazel-with-bazel-p1-staging:
     after_run:
     - build-bazel-with-bazel-p1
@@ -639,3 +653,9 @@ meta:
   bitrise.io:
     stack: osx-xcode-15.3.x-las
     machine_type_id: g2-m1.8core
+pipelines:
+  release-patched-bazel-to-kv:
+    workflows:
+      release-bazel-to-kv-cache-r2-darwin: {}
+      release-bazel-to-kv-cache-r2-linux: {}
+      release-bazel-to-kv-cache-gcp: {}
