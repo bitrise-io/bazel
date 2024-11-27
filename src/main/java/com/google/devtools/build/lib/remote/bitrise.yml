@@ -1,0 +1,634 @@
+---
+format_version: '13'
+default_step_lib_source: https://github.com/bitrise-io/bitrise-steplib.git
+project_type: other
+workflows:
+  _build-bazel-with-bazel:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - script:
+        title: Update GO -> 1.22
+        inputs:
+        - script_file_path:
+        - content: |
+            #!/usr/bin/env bash
+            set -euxo pipefail
+            asdf install golang 1.22.0
+            asdf global golang 1.22.0
+            go version
+    - script@1:
+        title: Install bazelisk
+        inputs:
+        - script_file_path:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                curl -L -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-amd64
+                chmod +x /usr/local/bin/bazel
+                bazel --version
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+                go install github.com/bazelbuild/bazelisk@latest
+                sudo ln -s $(which bazelisk) /usr/local/bin/bazel
+                bazel --version
+            else
+                echo "Unknown OS"
+            fi
+    - activate-build-cache-for-bazel@1: {}
+    - script@1:
+        title: bazel fetch //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "common --show_timestamps" >> .bazelrc
+            echo "common --announce_rc" >> .bazelrc
+            echo "common --color=yes" >> .bazelrc
+
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              echo "startup --digest_function=blake3" >> .bazelrc
+              echo "build --remote_cache_compression" >> .bazelrc
+            fi
+
+            bazel fetch //src:bazel-dev
+    - script@1:
+        title: bazel build //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            START_TIME=$(date +%s)
+            bazel build --profile=./bazel-profile.gz --noslim_profile //src:bazel-dev
+            END_TIME=$(date +%s)
+
+            ELAPSED_TIME=$((END_TIME - START_TIME))
+            curl -X POST "https://api.datadoghq.com/api/v1/series" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: $DD_API_KEY" \
+            -d "{
+                  \"series\" : [{
+                    \"metric\": \"build_cache.reference_build_duration\",
+                    \"points\": [[$(date +%s), $ELAPSED_TIME]],
+                    \"tags\": [\"datacenter:$BITRISE_DEN_VM_DATACENTER\", \"measurement_name:$BITRISE_GIT_MESSAGE\", \"app_name:$BITRISE_APP_TITLE\"],
+                    \"type\": \"gauge\"
+                  }]
+                }"
+
+            curl -X POST "https://api.datadoghq.com/api/v1/distribution_points" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: $DD_API_KEY" \
+            -d "{
+                  \"series\" : [{
+                    \"metric\": \"build_cache.reference_build_duration.dist\",
+                    \"points\": [[$(date +%s), [$ELAPSED_TIME]]],
+                    \"tags\": [\"datacenter:$BITRISE_DEN_VM_DATACENTER\", \"measurement_name:$BITRISE_GIT_MESSAGE\", \"app_name:$BITRISE_APP_TITLE\"],
+                    \"type\": \"distribution\"
+                  }]
+                }"
+
+            cp ./bazel-profile.gz $BITRISE_DEPLOY_DIR
+            bazel analyze-profile ./bazel-profile.gz
+    - deploy-to-bitrise-io@2: {}
+    summary: Build bazel with bazel
+  _build-bazel-with-patched-bazel-wip:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - script@1:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            envman add --key BITRISE_GIT_BRANCH --value "szabi-log-action-master"
+        title: Fix branch to patched bazel (szabi-log-action-master)
+    - git-clone@8:
+        inputs:
+        - clone_depth: "-1"
+    - script:
+        title: Update GO -> 1.22
+        inputs:
+        - script_file_path:
+        - content: |
+            #!/usr/bin/env bash
+            set -euxo pipefail
+            asdf install golang 1.22.0
+            asdf global golang 1.22.0
+            go version
+    - script@1:
+        title: Install bazelisk
+        inputs:
+        - script_file_path:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                curl -L -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-amd64
+                chmod +x /usr/local/bin/bazel
+                bazel --version
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+                go install github.com/bazelbuild/bazelisk@latest
+                sudo ln -s $(which bazelisk) /usr/local/bin/bazel
+                bazel --version
+            else
+                echo "Unknown OS"
+            fi
+    - activate-build-cache-for-bazel@1: {}
+    - script@1:
+        title: bazel fetch //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "common --show_timestamps" >> .bazelrc
+            echo "common --announce_rc" >> .bazelrc
+            echo "common --color=yes" >> .bazelrc
+
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              echo "startup --digest_function=blake3" >> .bazelrc
+              echo "build --remote_cache_compression" >> .bazelrc
+            fi
+
+            bazel fetch //src:bazel-dev
+    - script@1:
+        title: build patched bazel
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            bazel build --profile=./bazel-profile.gz --noslim_profile --action_env=BITRISE_DEBUG_FLAG=BUILD_PATCHED_BAZEL --sandbox_debug --verbose_failures //src:bazel-dev
+    - set-java-version@1:
+        inputs:
+        - set_java_version: '21'
+        title: Set Java version to 21
+    - script@1:
+        title: build bazel with patched bazel
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+            mkdir /tmp/bazeldebug
+            bazel-bin/src/bazel-dev build --profile=./bazel-profile.gz --noslim_profile --action_env=--action_env=BITRISE_DEBUG_FLAG=BUILD_WITH_PATCHED_BAZEL //src:bazel-dev
+
+            if [ -d "/tmp/bazeldebug" ] && [ "$(ls -A /tmp/bazeldebug)" ]; then
+              echo "debug action files found in /tmp/bazeldebug. Creating archive..."
+
+              tar -czf "$BITRISE_DEPLOY_DIR/bazeldebug_archive.tar.gz" -C /tmp/bazeldebug .
+
+              echo "archive created at $BITRISE_DEPLOY_DIR/bazeldebug_archive.tar.gz"
+            else
+              echo "no files found in /tmp/bazeldebug."
+            fi
+    - deploy-to-bitrise-io@2: {}
+    summary: Build bazel with bazel
+  _build-bazel-with-patched-bazel-wip-kv:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - script@1:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            envman add --key BITRISE_GIT_BRANCH --value "szabi-log-action-master"
+        title: Fix branch to patched bazel (szabi-log-action-master)
+    - git-clone@8:
+        inputs:
+        - clone_depth: "-1"
+    - script:
+        title: Update GO -> 1.22
+        inputs:
+        - script_file_path:
+        - content: |
+            #!/usr/bin/env bash
+            set -euxo pipefail
+            asdf install golang 1.22.0
+            asdf global golang 1.22.0
+            go version
+    - restore-cache@2:
+        inputs:
+        - key: bazel-bin-{{ .Branch }}-{{ .CommitHash }}
+        - verbose: 'true'
+        title: Restore Bazel binary from KV cache
+    - activate-build-cache-for-bazel@1: {}
+    - set-java-version@1:
+        inputs:
+        - set_java_version: '21'
+        title: Set Java version to 21
+    - script@1:
+        title: bazel fetch //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "common --show_timestamps" >> .bazelrc
+            echo "common --announce_rc" >> .bazelrc
+            echo "common --color=yes" >> .bazelrc
+
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              echo "startup --digest_function=blake3" >> .bazelrc
+              echo "build --remote_cache_compression" >> .bazelrc
+            fi
+
+            bazel-bin/src/bazel-dev fetch //src:bazel-dev
+    - script@1:
+        title: build bazel with patched bazel
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+            mkdir /tmp/bazeldebug
+            bazel-bin/src/bazel-dev build --profile=./bazel-profile.gz --noslim_profile //src:bazel-dev
+
+            if [ -d "/tmp/bazeldebug" ] && [ "$(ls -A /tmp/bazeldebug)" ]; then
+              echo "debug action files found in /tmp/bazeldebug. Creating archive..."
+
+              tar -czf "$BITRISE_DEPLOY_DIR/bazeldebug_archive.tar.gz" -C /tmp/bazeldebug .
+
+              echo "archive created at $BITRISE_DEPLOY_DIR/bazeldebug_archive.tar.gz"
+            else
+              echo "no files found in /tmp/bazeldebug."
+            fi
+    - deploy-to-bitrise-io@2: {}
+    summary: Build bazel with bazel
+  _release_bazel_to_kv_cache:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - script@1:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            envman add --key BITRISE_GIT_BRANCH --value "szabi-log-action-master"
+        title: Fix branch to patched bazel (szabi-log-action-master)
+    - git-clone@8:
+        inputs:
+        - clone_depth: "-1"
+    - script:
+        title: Update GO -> 1.22
+        inputs:
+        - script_file_path:
+        - content: |
+            #!/usr/bin/env bash
+            set -euxo pipefail
+            asdf install golang 1.22.0
+            asdf global golang 1.22.0
+            go version
+    - script@1:
+        title: Install bazelisk
+        inputs:
+        - script_file_path:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                curl -L -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-amd64
+                chmod +x /usr/local/bin/bazel
+                bazel --version
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+                go install github.com/bazelbuild/bazelisk@latest
+                sudo ln -s $(which bazelisk) /usr/local/bin/bazel
+                bazel --version
+            else
+                echo "Unknown OS"
+            fi
+    - script@1:
+        title: bazel fetch //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "common --show_timestamps" >> .bazelrc
+            echo "common --announce_rc" >> .bazelrc
+            echo "common --color=yes" >> .bazelrc
+
+            if [[ "$OSTYPE" == "darwin"* ]]; then
+              echo "startup --digest_function=blake3" >> .bazelrc
+              echo "build --remote_cache_compression" >> .bazelrc
+            fi
+
+            bazel fetch //src:bazel-dev
+    - script@1:
+        title: build patched bazel
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            bazel build //src:bazel-dev
+    - save-cache@1:
+        inputs:
+        - key: bazel-bin-{{ .Branch }}-{{ .CommitHash }}
+        - paths: bazel-bin/src
+        - verbose: 'true'
+        title: Save Bazel binary into KV cache
+    summary: Build bazel with bazel
+  build-bazel-with-bazel-buildbuddy:
+    steps:
+    - activate-ssh-key@4:
+        run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - git-clone@8: {}
+    - script:
+        title: Update GO -> 1.22
+        inputs:
+        - script_file_path:
+        - content: |
+            #!/usr/bin/env bash
+            set -euxo pipefail
+            asdf install golang 1.22.0
+            asdf global golang 1.22.0
+            go version
+    - script@1:
+        title: Install bazelisk
+        inputs:
+        - script_file_path:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                curl -L -o /usr/local/bin/bazel https://github.com/bazelbuild/bazelisk/releases/download/v1.19.0/bazelisk-linux-amd64
+                chmod +x /usr/local/bin/bazel
+                bazel --version
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+                go install github.com/bazelbuild/bazelisk@latest
+                sudo ln -s $(which bazelisk) /usr/local/bin/bazel
+                bazel --version
+            else
+                echo "Unknown OS"
+            fi
+    - script@1:
+        title: bazel setup for buildbuddy - no RBE
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "build --bes_results_url=https://gogod3v-eval.buildbuddy.io/invocation/" >> .bazelrc
+            echo "build --bes_backend=grpcs://gogod3v-eval.buildbuddy.io" >> .bazelrc
+            echo "build --remote_cache=grpcs://gogod3v-eval.buildbuddy.io" >> .bazelrc
+            echo "build --remote_timeout=3600" >> .bazelrc
+            echo "build --remote_header=x-buildbuddy-api-key=$BB_KEY" >> .bazelrc
+    - script@1:
+        title: bazel fetch //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "common --show_timestamps" >> .bazelrc
+            echo "common --announce_rc" >> .bazelrc
+            echo "common --color=yes" >> .bazelrc
+
+            #if [[ "$OSTYPE" == "darwin"* ]]; then
+            #  echo "startup --digest_function=blake3" >> .bazelrc
+            #  echo "build --remote_cache_compression" >> .bazelrc
+            #fi
+
+            bazel fetch //src:bazel-dev
+    - script@1:
+        title: bazel build //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            START_TIME=$(date +%s)
+            bazel build --profile=./bazel-profile.gz --noslim_profile --action_env=QWE=asd //src:bazel-dev
+            END_TIME=$(date +%s)
+
+            ELAPSED_TIME=$((END_TIME - START_TIME))
+            curl -X POST "https://api.datadoghq.com/api/v1/series" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: $DD_API_KEY" \
+            -d "{
+                  \"series\" : [{
+                    \"metric\": \"build_cache.reference_build_duration_buildbuddy\",
+                    \"points\": [[$(date +%s), $ELAPSED_TIME]],
+                    \"tags\": [\"datacenter:$BITRISE_DEN_VM_DATACENTER\", \"measurement_name:$BITRISE_GIT_MESSAGE\", \"app_name:$BITRISE_APP_TITLE\"],
+                    \"type\": \"gauge\"
+                  }]
+                }"
+
+            cp ./bazel-profile.gz $BITRISE_DEPLOY_DIR
+            bazel analyze-profile ./bazel-profile.gz
+    - script@1:
+        title: bazel clean
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            bazel clean
+    - script@1:
+        title: bazel setup for buildbuddy - RBE
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            echo "build --remote_executor=grpcs://remote.buildbuddy.io" >> .bazelrc
+            echo "build --config=remote_buildbuddy" >> .bazelrc
+            echo "build --noremote_upload_local_results" >> .bazelrc
+    - script@1:
+        title: bazel build //src:bazel-dev
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            START_TIME=$(date +%s)
+            bazel build --profile=./bazel-profile-rbe.gz --noslim_profile --action_env=QWE=asd //src:bazel-dev
+            END_TIME=$(date +%s)
+
+            ELAPSED_TIME=$((END_TIME - START_TIME))
+            curl -X POST "https://api.datadoghq.com/api/v1/series" \
+            -H "Content-Type: application/json" \
+            -H "DD-API-KEY: $DD_API_KEY" \
+            -d "{
+                  \"series\" : [{
+                    \"metric\": \"build_cache.reference_build_duration_buildbuddy_rbe\",
+                    \"points\": [[$(date +%s), $ELAPSED_TIME]],
+                    \"tags\": [\"datacenter:$BITRISE_DEN_VM_DATACENTER\", \"measurement_name:$BITRISE_GIT_MESSAGE\", \"app_name:$BITRISE_APP_TITLE\"],
+                    \"type\": \"gauge\"
+                  }]
+                }"
+
+            cp ./bazel-profile-rbe.gz $BITRISE_DEPLOY_DIR
+            bazel analyze-profile ./bazel-profile-rbe.gz
+    - deploy-to-bitrise-io@2: {}
+    summary: Build bazel with bazel @ BuildBuddy
+    meta:
+      bitrise.io:
+        stack: linux-docker-android-22.04
+        machine_type_id: elite-xl
+  build-bazel-with-bazel-linux-p1:
+    after_run:
+    - _build-bazel-with-bazel
+    meta:
+      bitrise.io:
+        stack: linux-docker-android-22.04
+        machine_type_id: elite-xl
+  build-bazel-with-bazel-p1:
+    after_run:
+    - _build-bazel-with-bazel
+  build-bazel-with-bazel-patched-wip:
+    after_run:
+    - _build-bazel-with-patched-bazel-wip
+  build-bazel-with-bazel-p1-staging:
+    after_run:
+    - build-bazel-with-bazel-p1
+    steps:
+    - script@1:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            export CACHE_ENDPOINT_LINUX_STAGING="grpcs://build-cache-api.services.bitrise.dev:443"
+            export CACHE_ENDPOINT_MAC_STAGING="grpc://build-cache-api-las.services.bitrise.dev:6666"
+
+            if [[ "$OSTYPE" == "linux-gnu"* ]]; then
+                echo "Setting cache endpoint to $CACHE_ENDPOINT_LINUX_STAGING"
+                envman add --key BITRISE_BUILD_CACHE_ENDPOINT --value "$CACHE_ENDPOINT_LINUX_STAGING"
+                echo $BITRISE_BUILD_CACHE_ENDPOINT
+            elif [[ "$OSTYPE" == "darwin"* ]]; then
+                echo "Setting cache endpoint to $CACHE_ENDPOINT_MAC_STAGING"
+                envman add --key BITRISE_BUILD_CACHE_ENDPOINT --value "$CACHE_ENDPOINT_MAC_STAGING"
+                echo $BITRISE_BUILD_CACHE_ENDPOINT
+            else
+                echo "Unknown OS"
+            fi
+meta:
+  bitrise.io:
+    stack: osx-xcode-15.3.x-las
+    machine_type_id: g2-m1.8core
