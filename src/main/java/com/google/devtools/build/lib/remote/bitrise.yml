@@ -190,7 +190,7 @@ workflows:
             bazel build //src:bazel-dev
     - save-cache@1:
         inputs:
-        - key: bazel-bin-{{ .Branch }}-{{ .CommitHash }}
+        - key: bazel-bin-{{ .OS }}-{{ .Branch }}-{{ .CommitHash }}
         - paths: bazel-bin/src
         - verbose: 'true'
         title: Save Bazel binary into KV cache
