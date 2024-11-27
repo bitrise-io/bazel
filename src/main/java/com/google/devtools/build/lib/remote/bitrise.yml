@@ -7,6 +7,19 @@ workflows:
     steps:
     - activate-ssh-key@4:
         run_if: '{{getenv "SSH_RSA_PRIVATE_KEY" | ne ""}}'
+    - script@1:
+        inputs:
+        - content: |-
+            #!/usr/bin/env bash
+            # fail if any commands fails
+            set -e
+            # make pipelines' return status equal the last command to exit with a non-zero status, or zero if all commands exit successfully
+            set -o pipefail
+            # debug log
+            set -x
+
+            envman add --key BITRISE_GIT_BRANCH --value "szabi-log-action-master"
+        title: Fix branch to patched bazel (szabi-log-action-master)
     - git-clone@8: {}
     - script:
         title: Update GO -> 1.22
@@ -358,6 +371,8 @@ workflows:
       bitrise.io:
         stack: linux-docker-android-22.04
         machine_type_id: elite-xl
+  
+  
   build-bazel-with-bazel-linux-p1:
     after_run:
     - _build-bazel-with-bazel
