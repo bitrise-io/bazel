@@ -33,7 +33,7 @@ workflows:
             go version
     - restore-cache@2:
         inputs:
-        - key: bazel-bin-{{ .Branch }}-{{ .CommitHash }}
+        - key: bazel-bin-{{ .OS }}-{{ .Branch }}-{{ .CommitHash }}
         - verbose: 'true'
         title: Restore Bazel binary from KV cache
     - activate-build-cache-for-bazel@1: {}
