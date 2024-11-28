@@ -28,6 +28,8 @@ import com.google.devtools.build.lib.remote.merkletree.MerkleTree;
 import com.google.devtools.build.lib.vfs.PathFragment;
 import java.util.SortedMap;
 import javax.annotation.Nullable;
+import java.io.FileWriter;
+import java.io.IOException;
 
 /**
  * A value class representing an action which can be executed remotely.
@@ -42,6 +44,7 @@ public class RemoteAction {
   private final RemoteActionExecutionContext remoteActionExecutionContext;
   private final RemotePathResolver remotePathResolver;
   @Nullable private final MerkleTree merkleTree;
+  @Nullable private final MerkleTree merkleTreeForDebug;
   private final long inputBytes;
   private final long inputFiles;
   private final Digest commandHash;
@@ -65,12 +68,46 @@ public class RemoteAction {
     this.remoteActionExecutionContext = remoteActionExecutionContext;
     this.remotePathResolver = remotePathResolver;
     this.merkleTree = remoteDiscardMerkleTrees ? null : merkleTree;
+    this.merkleTreeForDebug = merkleTree;
     this.inputBytes = merkleTree.getInputBytes();
     this.inputFiles = merkleTree.getInputFiles();
     this.commandHash = commandHash;
     this.command = command;
     this.action = action;
     this.actionKey = actionKey;
+  }
+
+  private void writeDirectoryToFile(FileWriter writer, String root, MerkleTree t) throws IOException {
+    writer.write("[Root proto of " + root + "]\n");
+    if (t != null) {
+      writer.write(t.rootProto.toString());
+      for (String dirName : t.directories.keySet()) {
+        MerkleTree dir = t.directories.get(dirName);
+        writeDirectoryToFile(writer, root + "/" + dirName, dir);
+      }
+    } else {
+      writer.write("[merkleTree is null]\n");
+    }
+  }
+
+  public void writeToFile() {
+    String jsonPath = "/tmp/bazeldebug/" + actionKey.getDigest().getHash() + ".txt";
+    try (FileWriter writer = new FileWriter(jsonPath)) {
+        writer.write("[Action]\n");
+        writer.write(action.toString());
+        writer.write("\n\n");
+
+        writer.write("[Command]\n");
+        writer.write(command.toString());
+        writer.write("\n\n");
+
+        writer.write("[InputRoot]\n");
+        writeDirectoryToFile(writer, ".", merkleTreeForDebug);
+
+        System.out.println(jsonPath + " written.");
+    } catch (IOException e) {
+        e.printStackTrace();
+    }
   }
 
   public RemoteActionExecutionContext getRemoteActionExecutionContext() {

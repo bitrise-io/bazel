@@ -137,6 +137,7 @@ import io.reactivex.rxjava3.disposables.Disposable;
 import io.reactivex.rxjava3.schedulers.Schedulers;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.File;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -670,7 +671,6 @@ public class RemoteExecutionService {
               buildSalt(spawn, spawnScrubber));
 
       ActionKey actionKey = digestUtil.computeActionKey(action);
-
       RequestMetadata metadata =
           TracingMetadataUtils.buildMetadata(
               buildRequestId, commandId, actionKey.getDigest().getHash(), spawn.getResourceOwner());
