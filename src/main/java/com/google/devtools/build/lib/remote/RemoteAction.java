@@ -91,7 +91,7 @@ public class RemoteAction {
   }
 
   public void writeToFile() {
-    String jsonPath = "/tmp/bazeldebug/" + actionKey.getDigest().getHash() + ".json";
+    String jsonPath = "/tmp/bazeldebug/" + actionKey.getDigest().getHash() + ".txt";
     try (FileWriter writer = new FileWriter(jsonPath)) {
         writer.write("[Action]\n");
         writer.write(action.toString());
