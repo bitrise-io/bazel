@@ -723,3 +723,12 @@ buildbuddy_deps()
 load("@io_buildbuddy_buildbuddy_toolchain//:rules.bzl", "buildbuddy")
 
 buildbuddy(name = "buildbuddy_toolchain")
+
+load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
+
+http_archive(
+    name = "bitrise_toolchains",
+    sha256 = "04863f975ce401adf0329bb262c877b42e40d8e7687b82bcc18777cbc557c3d9",
+    strip_prefix = "bitrise-toolchains-0.0.2",
+    url = "https://github.com/bitrise-io/bitrise-toolchains/archive/refs/tags/v0.0.2.tar.gz",
+)
