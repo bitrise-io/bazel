@@ -1,6 +1,7 @@
 # Bazel - Google's Build System
 
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_java//toolchains:local_java_repository.bzl", "local_java_runtime")
 load("@rules_license//rules:license.bzl", "license")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_binary")
@@ -319,3 +320,9 @@ REMOTE_PLATFORMS = ("rbe_ubuntu2004",)
     )
     for platform_name in REMOTE_PLATFORMS
 ]
+
+local_java_runtime(
+    name = "rbe_jdk21",
+    java_home = "/Users/vagrant/.jenv/versions/21",
+    version = "21",
+)
