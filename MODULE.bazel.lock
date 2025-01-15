@@ -209,7 +209,7 @@
   "moduleExtensions": {
     "@@apple_support+//crosstool:setup.bzl%apple_cc_configure_extension": {
       "general": {
-        "bzlTransitiveDigest": "7ii+gFxWSxHhQPrBxfMEHhtrGvHmBTvsh+KOyGunP/s=",
+        "bzlTransitiveDigest": "SKth1NgruDWmWTeXDCh0A0NfAgafC4gc2LLGmtsh+xc=",
         "usagesDigest": "f700ASGHSlNlHWdeh4mrBuHr6boot3gLQzH9SMYrbBY=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -237,7 +237,7 @@
     },
     "@@googleapis+//:extensions.bzl%switched_rules": {
       "general": {
-        "bzlTransitiveDigest": "vG6fuTzXD8MMvHWZEQud0MMH7eoC4GXY0va7VrFFh04=",
+        "bzlTransitiveDigest": "JLpojYeGHLdgnwSUuQWOrtkL9UMygBUUEFJZh7ASlmA=",
         "usagesDigest": "K4YY5ETECHnMxBMo0wSPRtC5QWXIqMORcJNRf9NVrrY=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -405,7 +405,7 @@
     },
     "@@grpc+//bazel:grpc_deps.bzl%grpc_repo_deps_ext": {
       "general": {
-        "bzlTransitiveDigest": "5TfzYlp8Y+UKkVz5RlvJ+WoMjs6d3+Y3sHhn1c7I86o=",
+        "bzlTransitiveDigest": "UoRBygbflXUDvcBYXGiXeHmL9xo6u+IBzOY+jmb/RpA=",
         "usagesDigest": "Z26QZp+BO+JA3lXVmiYgAksjiJCi6os73HzdVzGRaw8=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -598,7 +598,7 @@
     },
     "@@platforms//host:extension.bzl%host_platform": {
       "general": {
-        "bzlTransitiveDigest": "xelQcPZH8+tmuOHVjL9vDxMnnQNMlwj0SlvgoqBkm4U=",
+        "bzlTransitiveDigest": "WewbYICdNVp22bzUQafEVMzMIpBnNjJ3zqKlUOCDIGc=",
         "usagesDigest": "SeQiIN/f8/Qt9vYQk7qcXp4I4wJeEC0RnQDiaaJ4tb8=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -821,7 +821,7 @@
     },
     "@@rules_foreign_cc+//foreign_cc:extensions.bzl%tools": {
       "general": {
-        "bzlTransitiveDigest": "a7qnESofmIRYId6wwGNPJ9kvExU80KrkxL281P3+lBE=",
+        "bzlTransitiveDigest": "gcu4yi93DNWUrfjf+7lkU2gMHv7UY/vdsC8hLdTXkSY=",
         "usagesDigest": "9LXdVp01HkdYQT8gYPjYLO6VLVJHo9uFfxWaU1ymiRE=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -1252,7 +1252,7 @@
     },
     "@@rules_graalvm+//:extensions.bzl%graalvm": {
       "general": {
-        "bzlTransitiveDigest": "h5NoLe6qf+ziboLGAdcXrD+fgwCizx5PmMd0VH19SXY=",
+        "bzlTransitiveDigest": "jcDr6jw6CL11BS19TFByMP6/HAqc2nlD6L+bdtLRFBU=",
         "usagesDigest": "IiaTFyniquncmL1VQp9QockzfzC2kuN74ByVtjcZK6s=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
@@ -1290,12 +1290,12 @@
     },
     "@@rules_jvm_external+//:extensions.bzl%maven": {
       "general": {
-        "bzlTransitiveDigest": "q0U9qdK3cxV9KQ2ZaERVngkEhZiqkwI698IL2JM77LA=",
+        "bzlTransitiveDigest": "MM9IDxlcZli49W32OnBB58KIQmkxqvxXyAcjHb1rgto=",
         "usagesDigest": "DB5zg4bbSdQrgDRAyT28OV6+w0wjKGjv4wFDKCMSv94=",
         "recordedFileInputs": {
-          "@@rules_jvm_external+//rules_jvm_external_deps_install.json": "cafb5d2d8119391eb2b322ce3840d3352ea82d496bdb8cbd4b6779ec4d044dda",
-          "@@stardoc+//maven_install.json": "25f3c138ca52c61e0e7a564fe21f5709261b33d78d35427b6c18d7aa202d973b",
-          "@@//maven_install.json": "fd1fd0dbe7307e679aa66b8808247d56f683328a65b9ce7768f42b6b293d5e4d"
+          "@@rules_jvm_external+//rules_jvm_external_deps_install.json": "eeeb56217d71202e8484b6c911f2738bb9c61bb30213a22dbd321d12cc710060",
+          "@@stardoc+//maven_install.json": "c51250a1f92e3f5c381de7abd7432e56b245969ce9c856952ebaedce361c832e",
+          "@@//maven_install.json": "d6848f0e89311cdd254c4455d9746606efe630d6b0e6ae3a0385f14d8a6363ba"
         },
         "recordedDirentsInputs": {},
         "envVariables": {},
@@ -5183,7 +5183,7 @@
     },
     "@@rules_kotlin+//src/main/starlark/core/repositories:bzlmod_setup.bzl%rules_kotlin_extensions": {
       "general": {
-        "bzlTransitiveDigest": "fus14IFJ/1LGWWGKPH/U18VnJCoMjfDt1ckahqCnM0A=",
+        "bzlTransitiveDigest": "mjEpMcNvt8O97wimreF4hDPVsJeMJ5KQ4Mrv+yWl4Ps=",
         "usagesDigest": "QI2z8ZUR+mqtbwsf2fLqYdJAkPOHdOV+tF2yVAUgRzw=",
         "recordedFileInputs": {},
         "recordedDirentsInputs": {},
