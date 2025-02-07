@@ -1,6 +1,7 @@
 # Bazel - Google's Build System
 
 load("@bazel_skylib//rules:write_file.bzl", "write_file")
+load("@rules_java//toolchains:local_java_repository.bzl", "local_java_runtime")
 load("@rules_license//rules:license.bzl", "license")
 load("@rules_pkg//pkg:tar.bzl", "pkg_tar")
 load("@rules_python//python:defs.bzl", "py_binary")
@@ -277,6 +278,18 @@ platform(
     ],
 )
 
+platform(
+    name = "darwin_arm64",
+    constraint_values = [
+        "@platforms//os:macos",
+        "@platforms//cpu:arm64",
+    ],
+    exec_properties = {
+        "OSFamily": "Darwin",
+        "Arch": "arm64",
+    },
+)
+
 REMOTE_PLATFORMS = ("rbe_ubuntu2004",)
 
 [
@@ -307,3 +320,38 @@ REMOTE_PLATFORMS = ("rbe_ubuntu2004",)
     )
     for platform_name in REMOTE_PLATFORMS
 ]
+
+local_java_runtime(
+    name = "rbe_jdk21",
+    java_home = "/Users/vagrant/.jenv/versions/21",
+    version = "21",
+)
+
+xcode_version(
+  name = 'version16_2_0_16C5032a',
+  version = '16.2.0.16C5032a',
+  aliases = ['16C5032a', '16.2', '16', '16.2.0.16C5032a', '16.2.0'],
+  default_ios_sdk_version = '18.2',
+  default_tvos_sdk_version = '18.2',
+  default_macos_sdk_version = '15.2',
+  default_visionos_sdk_version = '2.2',
+  default_watchos_sdk_version = '11.2',
+)
+
+available_xcodes(
+    name = "remote_xcodes",
+    default = ":version16_2_0_16C5032a",
+    versions = [":version16_2_0_16C5032a"]
+)
+
+available_xcodes(
+  name = 'host_xcodes',
+  versions = [':version16_2_0_16C5032a'],
+  default = ':version16_2_0_16C5032a',
+)
+
+xcode_config(
+    name = "explicit_xcode_config",
+    local_versions = ":host_xcodes",
+    remote_versions = ":remote_xcodes",
+)
