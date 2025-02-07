@@ -326,3 +326,32 @@ local_java_runtime(
     java_home = "/Users/vagrant/.jenv/versions/21",
     version = "21",
 )
+
+xcode_version(
+  name = 'version16_2_0_16C5032a',
+  version = '16.2.0.16C5032a',
+  aliases = ['16C5032a', '16.2', '16', '16.2.0.16C5032a', '16.2.0'],
+  default_ios_sdk_version = '18.2',
+  default_tvos_sdk_version = '18.2',
+  default_macos_sdk_version = '15.2',
+  default_visionos_sdk_version = '2.2',
+  default_watchos_sdk_version = '11.2',
+)
+
+available_xcodes(
+    name = "remote_xcodes",
+    default = ":version16_2_0_16C5032a",
+    versions = [":version16_2_0_16C5032a"]
+)
+
+available_xcodes(
+  name = 'host_xcodes',
+  versions = [':version16_2_0_16C5032a'],
+  default = ':version16_2_0_16C5032a',
+)
+
+xcode_config(
+    name = "explicit_xcode_config",
+    local_versions = ":host_xcodes",
+    remote_versions = ":remote_xcodes",
+)

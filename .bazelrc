@@ -105,3 +105,4 @@ build:remote_bitrise --macos_sdk_version=15.2
 build:remote_bitrise --java_runtime_version=rbe_jdk21
 build:remote_bitrise --tool_java_runtime_version=rbe_jdk21
 build:remote_bitrise --extra_toolchains=//:all
+build:remote_bitrise --xcode_version_config=//:explicit_xcode_config
